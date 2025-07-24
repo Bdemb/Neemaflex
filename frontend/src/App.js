@@ -1,53 +1,90 @@
-import { useEffect } from "react";
-import "./App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import './App.css';
+import AuthProvider, { useAuth } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+// Auth Components
+import Login from './components/Auth/Login';
+import Register from './components/Auth/Register';
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
+// Dashboard Components
+import CustomerDashboard from './components/Dashboards/CustomerDashboard';
+import ServiceProviderDashboard from './components/Dashboards/ServiceProviderDashboard';
+import AdminDashboard from './components/Dashboards/AdminDashboard';
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+// Common Components
+import Navbar from './components/Common/Navbar';
+import LoadingSpinner from './components/Common/LoadingSpinner';
+
+// Landing Page
+import LandingPage from './components/LandingPage';
+
+function AppRoutes() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
+    <div className="min-h-screen bg-gray-50">
+      {user && <Navbar />}
+      
+      <Routes>
+        {/* Public Routes */}
+        <Route 
+          path="/" 
+          element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />} 
+        />
+        <Route 
+          path="/login" 
+          element={user ? <Navigate to="/dashboard" replace /> : <Login />} 
+        />
+        <Route 
+          path="/register" 
+          element={user ? <Navigate to="/dashboard" replace /> : <Register />} 
+        />
+
+        {/* Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardRouter />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Catch all route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
   );
-};
+}
+
+function DashboardRouter() {
+  const { user } = useAuth();
+
+  switch (user?.role) {
+    case 'customer':
+      return <CustomerDashboard />;
+    case 'service_provider':
+      return <ServiceProviderDashboard />;
+    case 'admin':
+      return <AdminDashboard />;
+    default:
+      return <Navigate to="/login" replace />;
+  }
+}
 
 function App() {
   return (
-    <div className="App">
+    <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
+        <AppRoutes />
       </BrowserRouter>
-    </div>
+    </AuthProvider>
   );
 }
 
