@@ -51,7 +51,7 @@ class UserBase(BaseModel):
     phone: str
     first_name: str
     last_name: str
-    role: str = Field(..., regex="^(customer|service_provider|admin)$")
+    role: str = Field(..., pattern="^(customer|service_provider|admin)$")
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8)
